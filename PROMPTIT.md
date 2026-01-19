@@ -572,33 +572,34 @@ export type CreateReservationInput = z.infer<
 ---
 ## 🧠 Why this works in Zod v4
 
-# Missing fields
+### Missing fields
 
 ```
 {}
 ```
 
-# ➡️ Error:
+➡️ Error:
 
 ```
 "roomId is required"
 ```
-# Wrong type
+### Wrong type
 
 ```
 { "roomId": 123 }
 ```
-# ➡️ Error:
+➡️ Error:
 
 ```
 "Expected string, received number"
 ```
-# Invalid date
+### Invalid date
 
 ```
 { "startTime": "abc" }
 ```
-# ➡️ Error:
+
+➡️ Error:
 
 ```
 "Must be a valid ISO date string"
@@ -728,7 +729,7 @@ export type CreateReservationInput = z.infer<
 
 ## ✅ Resulting behavior (exactly what you want)
 
-## ❌ Missing fields
+### ❌ Missing fields
 
 ```
 {}
@@ -741,7 +742,7 @@ roomId is required
 
 ---
 
-## ❌ Only roomId provided
+### ❌ Only roomId provided
 
 ```
 { "roomId": "room-1" }
@@ -755,7 +756,7 @@ startTime is required
 
 ---
 
-## ❌ Invalid date
+### ❌ Invalid date
 
 ```
 {
@@ -772,7 +773,7 @@ startTime must be a valid ISO date string
 ```
 ---
 
-## ❌ Wrong type
+### ❌ Wrong type
 
 ```
 {
