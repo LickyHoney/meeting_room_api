@@ -9,7 +9,7 @@ export class ReservationService {
     const parsed = createReservationSchema.safeParse(input);
     if (!parsed.success) {
       // Return first validation error message for simplicity
-      throw new Error(parsed.error.errors[0].message);
+      throw new Error(parsed.error.issues[0].message);
     }
 
     const { roomId, startTime, endTime } = parsed.data;
