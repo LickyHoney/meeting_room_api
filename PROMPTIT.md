@@ -634,4 +634,179 @@ Just tell me what you want to pair on next 👩‍💻👨‍💻
 
 ---
 
+## Prompt 5
+
+**User Prompt:**
+
+Now When only one or two parameters are provided in the request body, Zod returns a generic error message such as "Invalid input: expected string, received undefined". Instead of generic error I would like to display specific error messages by checking roomId, startTime, and endTime are required fields and start time and end time should be in ISO date string.
+
+---
+
+**Assistant Response:**
+
+Nice catch again 👍 — this is a very real Zod v4 pain point, and you’re asking for the right improvement.
+
+I’ll fix this in a clean, Zod-v4-correct way so that:
+
+* Missing fields → custom “is required” message
+* Wrong type → clear type message
+* Invalid date → clear ISO date message
+* No more "expected string, received undefined"
+
+I’ll explain the reasoning like a junior pair coder who just figured this out 🙂
+
+---
+
+## 🧠 Why the generic error happens
+
+In Zod v4, this happens:
+
+```
+z.string()
+```
+If the field is missing, Zod sees undefined and throws:
+
+```
+Invalid input: expected string, received undefined
+```
+So the trick is:
+👉 Intercept undefined before z.string() runs
+
+We do this using z.preprocess.
+
+---
+
+## ✅ Correct & clean solution (Zod v4)
+
+src/validation/reservation.validation.ts
+
+```ts
+import { z } from "zod";
+
+// Helper for required string fields
+const requiredString = (fieldName: string) =>
+  z.preprocess(
+    (value) => {
+      if (value === undefined || value === null) {
+        return ""; // force empty string to trigger custom message
+      }
+      return value;
+    },
+    z.string().nonempty(`${fieldName} is required`)
+  );
+
+// Helper for required ISO date strings
+const requiredIsoDate = (fieldName: string) =>
+  z.preprocess(
+    (value) => {
+      if (value === undefined || value === null) {
+        return ""; // missing field
+      }
+      return value;
+    },
+    z
+      .string()
+      .nonempty(`${fieldName} is required`)
+      .refine((val) => !isNaN(Date.parse(val)), {
+        message: `${fieldName} must be a valid ISO date string`,
+      })
+  );
+
+export const createReservationSchema = z.object({
+  roomId: requiredString("roomId"),
+  startTime: requiredIsoDate("startTime"),
+  endTime: requiredIsoDate("endTime"),
+});
+
+export type CreateReservationInput = z.infer<
+  typeof createReservationSchema
+>;
+
+```
+
+---
+
+## ✅ Resulting behavior (exactly what you want)
+
+## ❌ Missing fields
+
+```
+{}
+```
+
+➡️ Error:
+```
+roomId is required
+```
+
+---
+
+## ❌ Only roomId provided
+
+```
+{ "roomId": "room-1" }
+```
+
+➡️ Error:
+
+```
+startTime is required
+```
+
+---
+
+## ❌ Invalid date
+
+```
+{
+  "roomId": "room-1",
+  "startTime": "abc",
+  "endTime": "2026-01-20T11:00:00Z"
+}
+```
+
+➡️ Error:
+
+```
+startTime must be a valid ISO date string
+```
+---
+
+## ❌ Wrong type
+
+```
+{
+  "roomId": 123
+}
+```
+
+➡️ Error:
+
+```
+roomId is required
+```
+(Which is much nicer than the generic Zod error.)
+
+---
+
+## 🧩 Why this is the right Zod v4 approach
+* ✅ No deprecated APIs
+* ✅ No generic Zod error messages
+* ✅ Clear, field-specific validation
+* ✅ Fully TypeScript-safe
+* ✅ Easy to reuse for other schemas
+
+---
+
+## 💡 Optional next improvements (worth considering)
+If you want to level this up even more:
+* Return all validation errors instead of the first one
+* Convert startTime / endTime directly to Date
+* Add validation middleware instead of service-level validation
+* Add unit tests for validation edge cases
+
+Tell me which one you want next and we’ll pair on it 👩‍💻👨‍💻
+
+---
+
 *End of prompt documentation*
