@@ -1,18 +1,22 @@
 import { reservations } from "../store/inMemoryStore";
 import { Reservation } from "../models/reservation.model";
 import { randomUUID } from "crypto";
-import { createReservationSchema, CreateReservationInput } from "../validation/reservation.validation";
+import { createReservationSchema, CreateReservationInput, validateCreateReservation } from "../validation/reservation.validation";
 
 export class ReservationService {
   static createReservation(input: CreateReservationInput): Reservation {
     // Validate input using Zod
-    const parsed = createReservationSchema.safeParse(input);
-    if (!parsed.success) {
-      // Return first validation error message for simplicity
-      throw new Error(parsed.error.issues[0].message);
+    // const parsed = createReservationSchema.safeParse(input);
+    // if (!parsed.success) {
+    //   // Return first validation error message for simplicity
+    //   throw new Error(parsed.error.issues[0].message);
+    // }
+    const { data, errors } = validateCreateReservation(input);
+    if (errors) {
+      // Throw the errors so the route can handle them
+      throw { type: "validation", details: errors };
     }
-
-    const { roomId, startTime, endTime } = parsed.data;
+    const { roomId, startTime, endTime } = data;
     const start = new Date(startTime);
     const end = new Date(endTime);
     const now = new Date();

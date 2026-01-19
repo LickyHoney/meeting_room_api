@@ -5,11 +5,14 @@ const router = Router();
 
 router.post("/reservations", (req, res) => {
   try {
-    // Directly pass the request body to the service
     const reservation = ReservationService.createReservation(req.body);
     res.status(201).json(reservation);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    if (error.type === "validation") {
+      return res.status(400).json({ error: "Validation failed", details: error.details });
+    }
+    // Business logic errors
+    return res.status(400).json({ error: error.message });
   }
 });
 
@@ -18,7 +21,7 @@ router.delete("/reservations/:id", (req, res) => {
     ReservationService.cancelReservation(req.params.id);
     res.status(204).send();
   } catch (error: any) {
-    res.status(404).json({ error: error.message });
+    return res.status(404).json({ error: error.message });
   }
 });
 

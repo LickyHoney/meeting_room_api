@@ -35,6 +35,19 @@ export const createReservationSchema = z.object({
   endTime: requiredIsoDate("endTime"),
 });
 
-export type CreateReservationInput = z.infer<
-  typeof createReservationSchema
->;
+export type CreateReservationInput = z.infer<typeof createReservationSchema>;
+
+// Validation function returning all errors
+export function validateCreateReservation(input: unknown) {
+  const result = createReservationSchema.safeParse(input);
+
+  if (!result.success) {
+    const errors = result.error.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    }));
+    return { errors };
+  }
+
+  return { data: result.data };
+}
