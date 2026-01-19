@@ -339,4 +339,176 @@ Just tell me what you want to pair on next 👩‍💻👨‍💻
 
 ---
 
+## Prompt 3
+
+**User Prompt:**
+
+The code works correctly, but I want to improve it by adding strong, TypeScript-friendly data validation using Zod when creating a reservation. This should include checks for missing required fields, incorrect data types, and invalid or incorrectly formatted dates. Add a validation file that ensures roomId, startDate, and endDate are required and return clear error messages when validation fails. Add the validation logic in service file
+
+---
+
+**Assistant Response:**
+
+Perfect! 😎 Let’s do this step by step while keeping it TypeScript-friendly using Zod. I’ll act like a junior coder learning along with you.
+
+We’ll:
+
+* Install Zod.
+* Create a validation schema.
+* Integrate it in the service layer to validate inputs before creating a reservation.
+
+## 1️⃣ Install Zod
+
+```
+npm install zod
+```
+TypeScript already works perfectly with Zod, so no extra types are needed.
+
+---
+
+## 2️⃣ Create a validation file
+
+src/validation/reservation.validation.ts
+
+```ts
+import { z } from "zod";
+
+// Define a Zod schema for reservation creation
+export const createReservationSchema = z.object({
+  roomId: z.string({
+    required_error: "roomId is required",
+    invalid_type_error: "roomId must be a string",
+  }).min(1, "roomId cannot be empty"),
+
+  startTime: z.string({
+    required_error: "startTime is required",
+    invalid_type_error: "startTime must be a string in ISO format",
+  }).refine(val => !isNaN(Date.parse(val)), {
+    message: "startTime must be a valid ISO date string",
+  }),
+
+  endTime: z.string({
+    required_error: "endTime is required",
+    invalid_type_error: "endTime must be a string in ISO format",
+  }).refine(val => !isNaN(Date.parse(val)), {
+    message: "endTime must be a valid ISO date string",
+  }),
+});
+
+// TypeScript type for validated input
+export type CreateReservationInput = z.infer<typeof createReservationSchema>;
+
+```
+
+✅ Here:
+* roomId, startTime, endTime are required.
+* Dates are checked to be valid ISO strings.
+* Gives clear error messages.
+
+---
+
+## 3️⃣ Integrate validation into the service
+
+Updated src/services/reservations.service.ts
+
+```ts
+import { reservations } from "../store/inMemoryStore";
+import { Reservation } from "../models/reservation.model";
+import { randomUUID } from "crypto";
+import { createReservationSchema, CreateReservationInput } from "../validation/reservation.validation";
+
+export class ReservationService {
+  static createReservation(input: CreateReservationInput): Reservation {
+    // Validate input using Zod
+    const parsed = createReservationSchema.safeParse(input);
+    if (!parsed.success) {
+      // Return first validation error message for simplicity
+      throw new Error(parsed.error.errors[0].message);
+    }
+
+    const { roomId, startTime, endTime } = parsed.data;
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const now = new Date();
+
+    // Rule: start must be before end
+    if (start >= end) {
+      throw new Error("Start time must be before end time");
+    }
+
+    // Rule: cannot create in the past
+    if (start < now) {
+      throw new Error("Reservation cannot start in the past");
+    }
+
+    // Rule: no overlapping reservations for same room
+    const overlapping = reservations.some(r =>
+      r.roomId === roomId &&
+      start < r.endTime &&
+      end > r.startTime
+    );
+
+    if (overlapping) {
+      throw new Error("Reservation overlaps with an existing one");
+    }
+
+    const reservation: Reservation = {
+      id: randomUUID(),
+      roomId,
+      startTime: start,
+      endTime: end
+    };
+
+    reservations.push(reservation);
+    return reservation;
+  }
+
+  static cancelReservation(id: string): void {
+    const index = reservations.findIndex(r => r.id === id);
+    if (index === -1) {
+      throw new Error("Reservation not found");
+    }
+    reservations.splice(index, 1);
+  }
+
+  static listReservationsForRoom(roomId: string): Reservation[] {
+    return reservations.filter(r => r.roomId === roomId);
+  }
+}
+
+```
+
+---
+
+## 4️⃣ Update route to match new service input
+
+src/routes/reservations.routes.ts
+
+```ts
+router.post("/reservations", (req, res) => {
+  try {
+    // Directly pass the request body to the service
+    const reservation = ReservationService.createReservation(req.body);
+    res.status(201).json(reservation);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+```
+---
+
+✅ Benefits of this approach
+* Strong TypeScript typing with CreateReservationInput.
+* Early validation errors with clear messages.
+* Dates are strictly checked.
+* Business rules still live in the service; validation is first guard.
+
+---
+
+If you want, I can take it one step further and make the validation return all errors at once instead of just the first one — that makes the API much more user-friendly for frontends.
+Do you want me to do that next?
+
+---
+
 *End of prompt documentation*

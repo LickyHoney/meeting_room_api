@@ -1,30 +1,37 @@
 import { reservations } from "../store/inMemoryStore";
 import { Reservation } from "../models/reservation.model";
 import { randomUUID } from "crypto";
+import { createReservationSchema, CreateReservationInput } from "../validation/reservation.validation";
 
 export class ReservationService {
-  static createReservation(
-    roomId: string,
-    startTime: Date,
-    endTime: Date
-  ): Reservation {
+  static createReservation(input: CreateReservationInput): Reservation {
+    // Validate input using Zod
+    const parsed = createReservationSchema.safeParse(input);
+    if (!parsed.success) {
+      // Return first validation error message for simplicity
+      throw new Error(parsed.error.errors[0].message);
+    }
+
+    const { roomId, startTime, endTime } = parsed.data;
+    const start = new Date(startTime);
+    const end = new Date(endTime);
     const now = new Date();
 
     // Rule: start must be before end
-    if (startTime >= endTime) {
+    if (start >= end) {
       throw new Error("Start time must be before end time");
     }
 
     // Rule: cannot create in the past
-    if (startTime < now) {
+    if (start < now) {
       throw new Error("Reservation cannot start in the past");
     }
 
     // Rule: no overlapping reservations for same room
     const overlapping = reservations.some(r =>
       r.roomId === roomId &&
-      startTime < r.endTime &&
-      endTime > r.startTime
+      start < r.endTime &&
+      end > r.startTime
     );
 
     if (overlapping) {
@@ -34,8 +41,8 @@ export class ReservationService {
     const reservation: Reservation = {
       id: randomUUID(),
       roomId,
-      startTime,
-      endTime
+      startTime: start,
+      endTime: end
     };
 
     reservations.push(reservation);

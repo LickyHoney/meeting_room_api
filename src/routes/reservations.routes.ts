@@ -5,14 +5,8 @@ const router = Router();
 
 router.post("/reservations", (req, res) => {
   try {
-    const { roomId, startTime, endTime } = req.body;
-
-    const reservation = ReservationService.createReservation(
-      roomId,
-      new Date(startTime),
-      new Date(endTime)
-    );
-
+    // Directly pass the request body to the service
+    const reservation = ReservationService.createReservation(req.body);
     res.status(201).json(reservation);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
