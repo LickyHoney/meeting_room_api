@@ -810,4 +810,193 @@ Tell me which one you want next and we’ll pair on it 👩‍💻👨‍💻
 
 ---
 
+## Prompt 6
+
+**User Prompt:**
+
+Currently Validation integration is correct but only returns first error. I have added a function 
+
+export function validateCreateReservation(input: unknown) {
+  const result = createReservationSchema.safeParse(input);
+
+  if (!result.success) {
+    const errors = result.error.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    }));
+    return { errors };
+  }
+
+  return { data: result.data };
+}
+
+and called this function in service as below
+const { data, errors } = validateCreateReservation(input);
+    if (errors) {
+      // Throw the errors so the route can handle them
+      throw { type: "validation", details: errors };
+    }
+
+Also modified routes file for create reservation as below 
+
+router.post("/reservations", (req, res) => {
+  try {
+    const reservation = ReservationService.createReservation(req.body);
+    res.status(201).json(reservation);
+  } catch (error: any) {
+    if (error.type === "validation") {
+      return res.status(400).json({ error: "Validation failed", details: error.details });
+    }
+    // Business logic errors
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+Now this approach is working fine and gets all errors at once instead of displaying only first error.
+
+---
+
+**Assistant Response:**
+
+This is actually very well done 👍
+What you’ve implemented is a clean, production-grade pattern, and it’s exactly how I’d expect a strong TypeScript + Zod API to evolve.
+I’ll respond like a junior pair coder who’s reviewing this with you and validating that the approach is solid, plus I’ll point out small refinements you may want (optional).
+
+---
+
+## ✅ What you did right (important)
+
+### 1️⃣ Validation returns all errors
+
+Your function:
+
+```ts
+export function validateCreateReservation(input: unknown) {
+  const result = createReservationSchema.safeParse(input);
+
+  if (!result.success) {
+    const errors = result.error.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    }));
+    return { errors };
+  }
+
+  return { data: result.data };
+}
+```
+
+✔ Correct
+✔ Zod v4 compliant
+✔ Clear error structure
+✔ Frontend-friendly
+
+Example response is now predictable and clean:
+
+```
+{
+  "error": "Validation failed",
+  "details": [
+    { "field": "roomId", "message": "roomId is required" },
+    { "field": "startTime", "message": "startTime is required" }
+  ]
+}
+```
+This is much better DX than throwing strings.
+
+---
+
+### 2️⃣ Service layer stays clean
+
+Your service logic:
+
+```
+const { data, errors } = validateCreateReservation(input);
+
+if (errors) {
+  throw { type: "validation", details: errors };
+}
+```
+This is exactly right:
+* Validation → service
+* HTTP formatting → route
+* Business rules → service
+No framework leakage 👍
+
+---
+
+### 3️⃣ Routes cleanly distinguish error types
+
+```ts
+if (error.type === "validation") {
+  return res.status(400).json({
+    error: "Validation failed",
+    details: error.details
+  });
+}
+```
+
+✔ Validation errors
+✔ Business logic errors
+✔ Single HTTP entry point
+
+This is scalable when more endpoints are added.
+
+---
+
+## 🧠 Junior-level reflection (but accurate)
+
+“At first I thought throwing objects was weird, but actually this makes error handling way cleaner than throwing strings everywhere.”
+
+You’re right. This pattern:
+* Avoids instanceof Error problems
+* Is framework-agnostic
+* Works nicely with future middleware
+
+---
+
+## ✅ One small optional improvement (not required)
+
+If you want to tighten typing just a bit more, you could define a validation error type:
+
+```ts
+export type ValidationError = {
+  type: "validation";
+  details: {
+    field: string;
+    message: string;
+  }[];
+};
+```
+Then throw it explicitly:
+
+```ts
+throw {
+  type: "validation",
+  details: errors,
+} as ValidationError;
+```
+Not mandatory — just improves TypeScript safety.
+
+---
+
+🏁 Final verdict
+✔ Zod v4 compatible
+✔ All validation errors returned
+✔ Clean separation of concerns
+✔ Easy to extend
+✔ API-consumer friendly
+This is solid mid-level backend code, honestly already beyond “junior” 🙂
+
+---
+
+If you want to keep improving this API, next good steps would be:
+* Convert validated date strings → Date inside validation
+* Add validation middleware to remove duplication
+* Add unit tests for validation + overlap rules
+* Introduce error classes instead of plain objects
+Tell me what you want to tackle next and I’ll pair with you 👩‍💻👨‍💻
+
+---
+
 *End of prompt documentation*

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ValidationError } from "./validation.types";
 
 // Helper for required string fields
 const requiredString = (fieldName: string) =>
@@ -37,8 +38,7 @@ export const createReservationSchema = z.object({
 
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 
-// Validation function returning all errors
-export function validateCreateReservation(input: unknown) {
+export function validateCreateReservation(input: unknown): { data?: CreateReservationInput; errors?: ValidationError["details"] } {
   const result = createReservationSchema.safeParse(input);
 
   if (!result.success) {
@@ -46,6 +46,7 @@ export function validateCreateReservation(input: unknown) {
       field: issue.path.join("."),
       message: issue.message,
     }));
+
     return { errors };
   }
 

@@ -2,19 +2,19 @@ import { reservations } from "../store/inMemoryStore";
 import { Reservation } from "../models/reservation.model";
 import { randomUUID } from "crypto";
 import { createReservationSchema, CreateReservationInput, validateCreateReservation } from "../validation/reservation.validation";
+import { ValidationError } from "../validation/validation.types";
 
 export class ReservationService {
   static createReservation(input: CreateReservationInput): Reservation {
-    // Validate input using Zod
-    // const parsed = createReservationSchema.safeParse(input);
-    // if (!parsed.success) {
-    //   // Return first validation error message for simplicity
-    //   throw new Error(parsed.error.issues[0].message);
-    // }
     const { data, errors } = validateCreateReservation(input);
     if (errors) {
-      // Throw the errors so the route can handle them
-      throw { type: "validation", details: errors };
+      throw {
+        type: "validation",
+        details: errors,
+      } as ValidationError; // explicitly typed
+    }
+    if (!data) {
+      throw new Error("Validation data is missing");
     }
     const { roomId, startTime, endTime } = data;
     const start = new Date(startTime);
