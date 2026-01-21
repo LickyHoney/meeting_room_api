@@ -4,7 +4,7 @@
 
 **User Prompt:**
 
-I need to implment a project using Typescript and Node.js and I want you to behave like a junior level pair coder.
+I need to implement a project using Typescript and Node.js and I want you to behave like a junior level pair coder.
 
 ---
 
